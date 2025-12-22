@@ -58,7 +58,7 @@ export class Article {
     isArray: true,
     description: 'Media assets embedded inside the article'
   })
-  media: Relation<Upload[]> = []
+  media: Relation<Upload[]>
 
   @ManyToMany(() => Upload, { eager: true })
   @JoinTable({ name: 'article_source_assets' })
@@ -67,7 +67,7 @@ export class Article {
     isArray: true,
     description: 'Source files referenced by the article'
   })
-  sources: Relation<Upload[]> = []
+  sources: Relation<Upload[]>
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   @ApiProperty({ description: 'Record creation timestamp' })

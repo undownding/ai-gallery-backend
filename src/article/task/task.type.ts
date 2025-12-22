@@ -1,4 +1,4 @@
-import {Upload} from '../../upload/upload.entity'
+import { Upload } from '../../upload/upload.entity'
 
 export type AspectRatio =
   | '1:1'

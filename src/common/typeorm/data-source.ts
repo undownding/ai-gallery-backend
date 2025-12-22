@@ -14,8 +14,8 @@ export function createDataSourceOptions(entities?: MixedList<any>): DataSourceOp
         type: 'postgres',
         url: process.env.POSTGRES_URL,
         synchronize: false,
-        entities: ['dist/**/*.entity.js'],
-        migrations: ['dist/migrations/*.js']
+        migrations: ['migrations/*.ts'],
+        logging: false
       }
     case 'migration':
       return {
@@ -29,11 +29,11 @@ export function createDataSourceOptions(entities?: MixedList<any>): DataSourceOp
     default:
       return {
         type: 'postgres',
-        username: 'foo',
-        password: 'bar',
+        url: process.env.POSTGRES_URL,
         entities,
+        migrations: ['migrations/*.ts'],
         synchronize: false,
-        logging: false
+        logging: true
       }
   }
 }
@@ -62,3 +62,6 @@ export function createTypeOrmAsyncOptions(entities?: MixedList<any>): TypeOrmMod
     }
   }
 }
+
+const appDataSource = new DataSource(createDataSourceOptions(['src/**/*.entity.ts']))
+export default appDataSource

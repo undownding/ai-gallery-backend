@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
-import { UserModule } from './user/user.module'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { UploadModule } from './upload/upload.module'
 import { ConfigModule, ConfigService } from '@nestjs/config'
@@ -12,12 +11,14 @@ import { S3Module } from './s3/s3.module'
 import { BullModule } from '@nestjs/bullmq'
 import { parseRedisUrl } from './common/redis-url-parser'
 import { createAppCacheModule } from './common/cache/app-cache-module'
+import { UserModule } from './user/user.module'
 
 @Module({
   imports: [
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
+      global: true,
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET', 'badapple'),
         signOptions: { expiresIn: '7d' }
@@ -36,10 +37,10 @@ import { createAppCacheModule } from './common/cache/app-cache-module'
       })
     }),
     TypeOrmModule.forRootAsync(createTypeOrmAsyncOptions()),
-    UserModule,
     S3Module,
     UploadModule,
-    ArticleModule
+    ArticleModule,
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService]

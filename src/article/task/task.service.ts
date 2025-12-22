@@ -1,11 +1,11 @@
-import {Inject, Injectable, Logger, MessageEvent} from '@nestjs/common'
-import {CACHE_MANAGER} from '@nestjs/cache-manager'
-import type {Cache} from 'cache-manager'
-import {Observable} from 'rxjs'
-import {RedisClient} from 'bun'
-import {BunRedisClient} from './task.constants'
-import {CachedTask} from './task.type'
-import {Upload} from '../../upload/upload.entity'
+import { Inject, Injectable, Logger, MessageEvent } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import type { Cache } from 'cache-manager'
+import { Observable } from 'rxjs'
+import { RedisClient } from 'bun'
+import { BunRedisClient } from './task.constants'
+import { CachedTask } from './task.type'
+import { Upload } from '../../upload/upload.entity'
 
 @Injectable()
 export class TaskService {

@@ -15,7 +15,9 @@ import { UploadService } from './upload.service'
 import { Upload } from './upload.entity'
 import { UploadQueryDTO } from './upload.dto'
 import heredoc from 'tsheredoc'
-import { type IToken, Me, OptionalLogin } from '../user/auth/auth.decorator'
+import { NeedLogin } from '../user/need-login.decorator'
+import { Me } from '../user/me.decorator'
+import { User } from '../user/user.entity'
 
 @Controller('upload')
 @ApiTags('上传')
@@ -38,8 +40,8 @@ export class UploadController {
     type: () => Upload
   })
   @ApiBearerAuth()
-  @OptionalLogin()
-  async getPresignedUrl(@Query() query: UploadQueryDTO, @Me() me: IToken): Promise<Upload> {
+  @NeedLogin()
+  async getPresignedUrl(@Query() query: UploadQueryDTO, @Me() me: User): Promise<Upload> {
     return this.uploadService.presign(query.ext ?? 'jpg', me.id)
   }
 
