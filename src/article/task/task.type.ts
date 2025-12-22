@@ -1,4 +1,4 @@
-import { Upload } from '../../upload/upload.entity'
+import {Upload} from '../../upload/upload.entity'
 
 export type AspectRatio =
   | '1:1'
@@ -25,6 +25,7 @@ export type GeminiTask = {
 }
 
 export type CachedTask = {
+  isDone: boolean
   text: string | null
   upload: Upload | null
 }

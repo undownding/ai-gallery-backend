@@ -1,14 +1,14 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq'
-import { Job } from 'bullmq'
-import { CachedTask, GeminiTask, InlineContent } from './task.type'
-import { Inject } from '@nestjs/common'
-import { GoogleGenAI } from '@google/genai'
-import { UploadService } from '../../upload/upload.service'
-import { Upload } from '../../upload/upload.entity'
-import { BunRedisClient } from './task.constants'
-import { RedisClient } from 'bun'
-import { type Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
-import { isEqual } from 'lodash'
+import {Processor, WorkerHost} from '@nestjs/bullmq'
+import {Job} from 'bullmq'
+import {CachedTask, GeminiTask, InlineContent} from './task.type'
+import {Inject} from '@nestjs/common'
+import {GoogleGenAI} from '@google/genai'
+import {UploadService} from '../../upload/upload.service'
+import {Upload} from '../../upload/upload.entity'
+import {BunRedisClient} from './task.constants'
+import {RedisClient} from 'bun'
+import {type Cache, CACHE_MANAGER} from '@nestjs/cache-manager'
+import {isEqual} from 'lodash'
 
 @Processor('gemini-task-queue')
 export class TaskGeminiProcessor extends WorkerHost {
@@ -59,8 +59,13 @@ export class TaskGeminiProcessor extends WorkerHost {
       const candidates = chunk.candidates ?? []
 
       for (const candidate of candidates) {
-        const cachedTask: CachedTask | null =
-          (await this.cacheManager.get(`gemini-task-cache:${job.id}`)) || null
+        const cachedTask: CachedTask = (await this.cacheManager.get(
+          `gemini-task-cache:${job.id}`
+        )) || {
+          isDone: false,
+          text: null,
+          upload: null
+        }
 
         const parts = candidate.content?.parts ?? []
         for (const part of parts) {
@@ -88,15 +93,23 @@ export class TaskGeminiProcessor extends WorkerHost {
           }
 
           const nowTask = {
+            isDone: false,
             text,
             upload: lastUpload
           }
 
           if (!isEqual(cachedTask, nowTask)) {
-            await this.cacheManager.set(`gemini-task-cache:${job.id}`, nowTask)
+            await this.cacheManager.set(`gemini-task:${job.id}`, nowTask)
           }
         }
       }
     }
+
+    const finalTask: CachedTask = {
+      isDone: true,
+      text: aggregatedText,
+      upload: lastUpload
+    }
+    await this.cacheManager.set(`gemini-task:${job.id}`, finalTask)
   }
 }
