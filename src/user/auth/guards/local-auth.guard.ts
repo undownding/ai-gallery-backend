@@ -1,7 +1,7 @@
 import { AuthGuard } from '@nestjs/passport'
 
 export class LocalAuthGuard extends AuthGuard([
-  'username-password',
+  'username-password'
   // 'phone-code',
   // 'email-password',
   // 'wechat-qrcode',

@@ -14,13 +14,11 @@ import { S3Module } from '../s3/s3.module'
       provide: 'CDN_ADDR',
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        return (
-          configService.get<string>('CDN_ADDR') || 'https://cdn.example.com'
-        )
-      },
-    },
+        return configService.get<string>('CDN_ADDR') || 'https://cdn.example.com'
+      }
+    }
   ],
   exports: [UploadService],
-  controllers: [UploadController],
+  controllers: [UploadController]
 })
 export class UploadModule {}

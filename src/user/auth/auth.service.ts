@@ -18,14 +18,14 @@ export class AuthService {
     const user = await this.userService.findOne({
       select: ['id', 'username', 'password', 'secret'],
       where: {
-        username,
-      },
+        username
+      }
     })
     if (!user) {
       return false
     }
     return argon2.verify(user.password, password, {
-      secret: Buffer.from(user.secret, 'base64'),
+      secret: Buffer.from(user.secret, 'base64')
     })
   }
 
@@ -34,10 +34,10 @@ export class AuthService {
       id: user.id,
       tokenId: nanoid(16),
       role: user.role,
-      type,
+      type
     }
     return this.jwtService.sign(token, {
-      expiresIn: type === 'refresh_token' ? '90d' : '30d',
+      expiresIn: type === 'refresh_token' ? '90d' : '30d'
     })
   }
 }

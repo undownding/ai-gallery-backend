@@ -6,9 +6,7 @@ import { DataSource, type DataSourceOptions, MixedList } from 'typeorm'
 import SnakeNamingStrategy from './snake-naming-strategy'
 import { createMemDb } from './memdb'
 
-export function createDataSourceOptions(
-  entities?: MixedList<any>,
-): DataSourceOptions {
+export function createDataSourceOptions(entities?: MixedList<any>): DataSourceOptions {
   dotenv.config({ path: '.env' })
   switch (process.env.NODE_ENV) {
     case 'production':
@@ -17,7 +15,7 @@ export function createDataSourceOptions(
         url: process.env.POSTGRES_URL,
         synchronize: false,
         entities: ['dist/**/*.entity.js'],
-        migrations: ['dist/migrations/*.js'],
+        migrations: ['dist/migrations/*.js']
       }
     case 'migration':
       return {
@@ -26,7 +24,7 @@ export function createDataSourceOptions(
         synchronize: false,
         logging: true,
         entities: ['dist/**/*.entity.js'],
-        migrations: ['src/migrations/*.ts'],
+        migrations: ['src/migrations/*.ts']
       }
     default:
       return {
@@ -35,19 +33,17 @@ export function createDataSourceOptions(
         password: 'bar',
         entities,
         synchronize: false,
-        logging: false,
+        logging: false
       }
   }
 }
 
-export function createTypeOrmAsyncOptions(
-  entities?: MixedList<any>,
-): TypeOrmModuleAsyncOptions {
+export function createTypeOrmAsyncOptions(entities?: MixedList<any>): TypeOrmModuleAsyncOptions {
   return {
     useFactory: () => createDataSourceOptions(entities),
     dataSourceFactory: async (options: DataSourceOptions) => {
       const defaultOptions = {
-        namingStrategy: new SnakeNamingStrategy(),
+        namingStrategy: new SnakeNamingStrategy()
       }
       if (
         options.type === 'postgres' &&
@@ -55,7 +51,7 @@ export function createTypeOrmAsyncOptions(
       ) {
         const ds: DataSource = createMemDb().adapters.createTypeormDataSource({
           ...options,
-          ...defaultOptions,
+          ...defaultOptions
         })
         await ds.initialize()
         await ds.synchronize()
@@ -63,6 +59,6 @@ export function createTypeOrmAsyncOptions(
         return ds
       }
       return new DataSource({ ...options, ...defaultOptions })
-    },
+    }
   }
 }

@@ -12,7 +12,7 @@ on:
       - package.json
       - bun.lock
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -23,7 +23,6 @@ permissions:
   pull-requests: write
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -75,7 +74,7 @@ jobs:
         run: cp .env.defaults .env
 
       - name: Run test
-        run:  bun test --reporter=junit --reporter-outfile=./junit.xml --coverage --coverage-reporter=lcov
+        run: bun test --reporter=junit --reporter-outfile=./junit.xml --coverage --coverage-reporter=lcov
 
       - name: Show test report
         run: cat junit.xml
@@ -83,9 +82,9 @@ jobs:
       - uses: dorny/test-reporter@v2
         name: Test Report
         with:
-          name: Test Report                 # Name of the check run which will be created
-          path: 'junit.xml'                 # Path to test results (inside artifact .zip)
-          reporter: jest-junit              # Format of test results
+          name: Test Report # Name of the check run which will be created
+          path: 'junit.xml' # Path to test results (inside artifact .zip)
+          reporter: jest-junit # Format of test results
 
       - name: Coverage Report
         uses: VeryGoodOpenSource/very_good_coverage@v2

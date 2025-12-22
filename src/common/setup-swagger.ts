@@ -16,7 +16,7 @@ export function setupSwagger(app: INestApplication): void {
   try {
     const outputPath = path.resolve(process.cwd(), 'dist', 'swagger.json')
     writeFileSync(outputPath, JSON.stringify(document, null, 2), {
-      encoding: 'utf8',
+      encoding: 'utf8'
     })
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {

@@ -15,7 +15,7 @@ export class S3Service {
    */
   async generatePutObjectPresignedUrls(
     count: number,
-    expiresIn: number = 3600,
+    expiresIn: number = 3600
   ): Promise<PresignedUrlItemDTO[]> {
     const results: PresignedUrlItemDTO[] = []
 
@@ -28,7 +28,7 @@ export class S3Service {
       // 生成 presigned URL
       const url = this.s3Client.presign(key, {
         method: 'PUT',
-        expiresIn,
+        expiresIn
       })
 
       results.push({ id, key, url })

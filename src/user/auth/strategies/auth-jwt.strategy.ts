@@ -10,13 +10,12 @@ export class AuthJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(configService: ConfigService) {
     super({
       jwtFromRequest: AuthJwtStrategy.fromCookieOrHeader,
-      secretOrKey: configService.get('JWT_SECRET', 'badapple'),
+      secretOrKey: configService.get('JWT_SECRET', 'badapple')
     })
   }
 
   public static fromCookieOrHeader(req: Request): string | null {
-    const authHeader =
-      req.header('x-authorization') || req.header('Authorization')
+    const authHeader = req.header('x-authorization') || req.header('Authorization')
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7, authHeader.length)
     }

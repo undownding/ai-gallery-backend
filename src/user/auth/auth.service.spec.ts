@@ -31,15 +31,13 @@ describe('AuthService', () => {
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => ({
             secret: configService.get('JWT_SECRET', 'badapple'),
-            signOptions: { expiresIn: '7d' },
-          }),
+            signOptions: { expiresIn: '7d' }
+          })
         }),
-        TypeOrmModule.forRootAsync(
-          createTypeOrmAsyncOptions([User, Upload, Role]),
-        ),
-        TypeOrmModule.forFeature([User]),
+        TypeOrmModule.forRootAsync(createTypeOrmAsyncOptions([User, Upload, Role])),
+        TypeOrmModule.forFeature([User])
       ],
-      providers: [UserService, AuthService],
+      providers: [UserService, AuthService]
     }).compile()
     authService = module.get(AuthService)
     userService = module.get(UserService)
@@ -51,9 +49,9 @@ describe('AuthService', () => {
     testUser = await userService.create({
       username: testUsername,
       password: await argon2.hash(testPassword, {
-        secret: Buffer.from(secret, 'base64'),
+        secret: Buffer.from(secret, 'base64')
       }),
-      secret,
+      secret
     })
   })
 

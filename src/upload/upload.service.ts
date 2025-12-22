@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import sharp from 'sharp'
 import { Upload } from './upload.entity'
 import { v7 as uuid } from 'uuid'
 import { isEmpty, isNull } from 'lodash'
@@ -22,14 +23,14 @@ export class UploadService extends BaseCrudService<Upload> {
 
     const url = this.s3Client.presign(key, {
       method: 'PUT',
-      expiresIn: 3600,
+      expiresIn: 3600
     })
 
     const upload = await this.create({ key, user: { id: userId } })
 
     return {
       ...upload,
-      url,
+      url
     }
   }
 
@@ -42,10 +43,7 @@ export class UploadService extends BaseCrudService<Upload> {
       await this.repository.save(upload)
     } catch (error) {
       if (error.name === 'NoSuchKey') {
-        Logger.error(
-          `S3 object with key ${upload.key} not found`,
-          'UploadService',
-        )
+        Logger.error(`S3 object with key ${upload.key} not found`, 'UploadService')
       }
     }
   }
@@ -56,10 +54,7 @@ export class UploadService extends BaseCrudService<Upload> {
       try {
         await this.setETagFromS3(data)
       } catch (error) {
-        Logger.error(
-          `Failed to set ETag for upload ${data.id}: ${error.message}`,
-          'UploadService',
-        )
+        Logger.error(`Failed to set ETag for upload ${data.id}: ${error.message}`, 'UploadService')
       }
     }
     return data
@@ -85,6 +80,78 @@ export class UploadService extends BaseCrudService<Upload> {
       return upload
     } catch (error) {
       console.error('Failed to create upload from S3 key:', error)
+      return null
+    }
+  }
+
+  async getBase64Object(uploadId: string): Promise<{ mimeType: string; data: string } | null> {
+    const upload = await this.getById(uploadId)
+    if (!upload) {
+      return null
+    }
+
+    try {
+      const s3File = this.s3Client.file(upload.key)
+      const [stat, arrayBuffer] = await Promise.all([s3File.stat(), s3File.arrayBuffer()])
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      return {
+        mimeType: stat?.type || 'application/octet-stream',
+        data: base64
+      }
+    } catch (error) {
+      Logger.error(
+        `Failed to read S3 object for upload ${uploadId}: ${error.message}`,
+        'UploadService'
+      )
+      return null
+    }
+  }
+
+  async uploadBase64Image(
+    base64Image: string,
+    mimeType?: string,
+    userId?: string
+  ): Promise<Upload | null> {
+    if (!base64Image) {
+      return null
+    }
+
+    try {
+      const dataUrlMatch = base64Image.match(/^data:(?<type>[^;]+);base64,/)
+      const normalizedBase64 = dataUrlMatch
+        ? base64Image.slice(dataUrlMatch[0].length)
+        : base64Image
+      const resolvedMimeType = dataUrlMatch?.groups?.type || mimeType || 'application/octet-stream'
+      if (
+        resolvedMimeType !== 'application/octet-stream' &&
+        !resolvedMimeType.startsWith('image/')
+      ) {
+        throw new Error(`Unsupported MIME type: ${resolvedMimeType}`)
+      }
+      const binary = Buffer.from(normalizedBase64.replace(/\s+/g, ''), 'base64')
+
+      const webpBuffer = await sharp(binary).webp({ quality: 90 }).toBuffer()
+
+      const key = `public/user-uploads/${userId || 'anonymous'}/${uuid()}.webp`
+
+      await this.s3Client.write(key, webpBuffer, {
+        type: 'image/webp',
+        acl: 'public-read'
+      })
+
+      const upload = await this.create({ key, user: { id: userId } })
+      await this.setETagFromS3(upload)
+
+      if (!upload.url) {
+        upload.url = `${this.CDN_ADDR}/${key}`
+      }
+
+      return upload
+    } catch (error) {
+      Logger.error(
+        `Failed to upload base64 image (${mimeType || 'unknown mime'}): ${error.message}`,
+        'UploadService'
+      )
       return null
     }
   }

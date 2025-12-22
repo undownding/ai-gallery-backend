@@ -16,7 +16,7 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    credentials: true,
+    credentials: true
   })
 
   if (configService.get('NODE_ENV') !== 'production' || process.env.VERCEL) {
@@ -27,10 +27,10 @@ async function bootstrap() {
     new ValidationPipe({
       transform: true,
       transformOptions: {
-        enableImplicitConversion: true,
+        enableImplicitConversion: true
       },
-      whitelist: true,
-    }),
+      whitelist: true
+    })
   )
 
   app.use(cookieParser())

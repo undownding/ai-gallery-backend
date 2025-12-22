@@ -8,7 +8,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
   type Relation,
-  UpdateDateColumn,
+  UpdateDateColumn
 } from 'typeorm'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsString, Matches } from 'class-validator'
@@ -24,19 +24,19 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
-    nullable: true,
+    nullable: true
   })
   @Index({ unique: true, where: 'email IS NOT NULL' })
   @ApiPropertyOptional({
     description: '用户邮箱',
-    example: 'foo@bar.com',
+    example: 'foo@bar.com'
   })
   email?: string
 
   @Column({
     type: 'varchar',
     length: 255,
-    nullable: true,
+    nullable: true
   })
   @ApiPropertyOptional()
   nickname?: string
@@ -44,7 +44,7 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
-    unique: true,
+    unique: true
   })
   @ApiProperty()
   @IsString()
@@ -55,39 +55,39 @@ export class User {
   @JoinColumn()
   @ApiPropertyOptional({
     description: '用户头像对应的 upload',
-    type: () => Upload,
+    type: () => Upload
   })
   avatar?: Relation<Upload>
 
   @ApiPropertyOptional({
     description: '用户头像 URL',
-    example: 'https://example.com/avatar.png',
+    example: 'https://example.com/avatar.png'
   })
   avatarUrl?: string | null
 
   @Column({
     type: 'varchar',
     length: 255,
-    select: false,
+    select: false
   })
   password: string
 
   @Column({
     type: 'varchar',
     length: 128,
-    select: false,
+    select: false
   })
   secret: string
 
   @Column({
     type: 'enum',
     enum: Role,
-    default: Role.USER,
+    default: Role.USER
   })
   @ApiProperty({
     enum: Role,
     description: '用户角色',
-    example: Role.USER,
+    example: Role.USER
   })
   role: Role
 
@@ -95,18 +95,18 @@ export class User {
     type: 'varchar',
     length: 255,
     select: false,
-    nullable: true,
+    nullable: true
   })
   appleId?: string
 
   @CreateDateColumn({
-    type: 'timestamp with time zone',
+    type: 'timestamp with time zone'
   })
   @ApiProperty()
   createdAt: Date
 
   @UpdateDateColumn({
-    type: 'timestamp with time zone',
+    type: 'timestamp with time zone'
   })
   @ApiProperty()
   updatedAt: Date

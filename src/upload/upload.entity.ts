@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   type Relation,
   RelationId,
-  UpdateDateColumn,
+  UpdateDateColumn
 } from 'typeorm'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { User } from '../user/user.entity'
@@ -18,38 +18,38 @@ export class Upload {
   @PrimaryGeneratedColumn('uuid')
   @ApiProperty({
     description: 'The unique identifier for the upload record',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: '123e4567-e89b-12d3-a456-426614174000'
   })
   id: string
 
   @Column({
     type: 'varchar',
     length: 255,
-    nullable: false,
+    nullable: false
   })
   key: string
 
   @Column({
     type: 'varchar',
     length: 72,
-    nullable: true,
+    nullable: true
   })
   eTag?: string
 
   @Column({
     type: 'int',
-    nullable: true,
+    nullable: true
   })
   size?: number
 
   @Column({
     type: 'varchar',
     length: 512,
-    nullable: true,
+    nullable: true
   })
   @ApiPropertyOptional({
     description: 'The URL of the uploaded file, if available',
-    example: 'https://example.com/uploads/file.jpg',
+    example: 'https://example.com/uploads/file.jpg'
   })
   url?: string
 
@@ -57,7 +57,7 @@ export class Upload {
   @JoinColumn()
   @ApiProperty({
     type: () => User,
-    description: 'The user who created the upload',
+    description: 'The user who created the upload'
   })
   user: Relation<User>
 
@@ -65,13 +65,13 @@ export class Upload {
   userId: string
 
   @CreateDateColumn({
-    type: 'timestamp with time zone',
+    type: 'timestamp with time zone'
   })
   @ApiProperty()
   createdAt: Date
 
   @UpdateDateColumn({
-    type: 'timestamp with time zone',
+    type: 'timestamp with time zone'
   })
   @ApiProperty()
   updatedAt: Date

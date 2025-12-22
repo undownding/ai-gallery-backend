@@ -19,20 +19,20 @@ export const TEST_CONFIG = {
   TEST_USER: {
     username: 'test_user_' + Date.now(),
     password: 'Test123!@#',
-    email: 'test@example.com',
+    email: 'test@example.com'
   },
   ADMIN_USER: {
     username: 'admin_user_' + Date.now(),
     password: 'Admin123!@#',
-    email: 'admin@example.com',
-  },
+    email: 'admin@example.com'
+  }
 }
 
 // 工具函数：重试机制
 export const withRetry = async (
   operation: () => Promise<any>,
   maxAttempts: number = TEST_CONFIG.RETRY_ATTEMPTS,
-  delay: number = TEST_CONFIG.RETRY_DELAY,
+  delay: number = TEST_CONFIG.RETRY_DELAY
 ): Promise<any> => {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -47,13 +47,8 @@ export const withRetry = async (
 }
 
 // 工具函数：API请求
-export const apiRequest = (
-  method: 'get' | 'post' | 'patch' | 'delete',
-  endpoint: string,
-) => {
-  return request(global.httpServer)[method](
-    `${TEST_CONFIG.API_PREFIX}${endpoint}`,
-  )
+export const apiRequest = (method: 'get' | 'post' | 'patch' | 'delete', endpoint: string) => {
+  return request(global.httpServer)[method](`${TEST_CONFIG.API_PREFIX}${endpoint}`)
 }
 
 // 工具函数：带认证的API请求
@@ -61,7 +56,7 @@ export const authenticatedRequest = (
   method: 'get' | 'post' | 'patch' | 'delete',
   endpoint: string,
   token: string,
-  httpServer?: any,
+  httpServer?: any
 ) => {
   const server = httpServer || global.httpServer
   return request(server)

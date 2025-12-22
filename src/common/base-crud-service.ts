@@ -5,7 +5,7 @@ import {
   FindManyOptions,
   FindOneOptions,
   FindOptionsWhere,
-  Repository,
+  Repository
 } from 'typeorm'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsInt, IsOptional } from 'class-validator'
@@ -23,7 +23,7 @@ export interface Paged<T> {
 export class PagedDto {
   @ApiPropertyOptional({
     description: '页数，从0开始',
-    example: 0,
+    example: 0
   })
   @IsOptional()
   @IsInt()
@@ -31,7 +31,7 @@ export class PagedDto {
 
   @ApiPropertyOptional({
     description: '每页数量，默认20',
-    example: 20,
+    example: 20
   })
   @IsOptional()
   @IsInt()
@@ -45,10 +45,7 @@ export class PagedDto {
 export class BaseCrudService<T extends { [key: string]: any }> {
   public readonly loader = new DataLoader<IDType, T>(async (ids) => {
     const entities = await this.listByIds(ids as IDType[])
-    return ids.map(
-      (id) =>
-        entities.find((entity) => entity.id === id) || new Error('Not found'),
-    )
+    return ids.map((id) => entities.find((entity) => entity.id === id) || new Error('Not found'))
   })
 
   private _repository: Repository<T>
@@ -95,7 +92,7 @@ export class BaseCrudService<T extends { [key: string]: any }> {
   public async search(
     where: FindOptionsWhere<T> | FindOptionsWhere<T>[],
     skip = 0,
-    limit = 20,
+    limit = 20
   ): Promise<Paged<T>> {
     return this.repository
       .findAndCount({ where, skip, take: limit })
@@ -105,14 +102,9 @@ export class BaseCrudService<T extends { [key: string]: any }> {
   /**
    * @deprecated something wrong with this method
    */
-  public async update(
-    criteria: IDType | FindOptionsWhere<T>,
-    data: Partial<T>,
-  ): Promise<T> {
+  public async update(criteria: IDType | FindOptionsWhere<T>, data: Partial<T>): Promise<T> {
     this.loader.clearAll()
-    return this.repository
-      .update(criteria, data as object)
-      .then((response) => response.raw[0])
+    return this.repository.update(criteria, data as object).then((response) => response.raw[0])
   }
 
   public async updateById(id: IDType, data: DeepPartial<T>): Promise<T> {
@@ -142,9 +134,7 @@ export class BaseCrudService<T extends { [key: string]: any }> {
     this.loader.clearAll()
   }
 
-  public async softDelete(
-    criteria: FindOptionsWhere<T> | IDType,
-  ): Promise<void> {
+  public async softDelete(criteria: FindOptionsWhere<T> | IDType): Promise<void> {
     await this.repository.softDelete(criteria)
     this.loader.clearAll()
   }

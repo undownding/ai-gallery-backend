@@ -1,15 +1,10 @@
-import {
-  applyDecorators,
-  createParamDecorator,
-  ExecutionContext,
-  UseGuards,
-} from '@nestjs/common'
+import { applyDecorators, createParamDecorator, ExecutionContext, UseGuards } from '@nestjs/common'
 import {
   ApiBearerAuth,
   ApiCookieAuth,
   ApiForbiddenResponse,
   ApiResponse,
-  ApiUnauthorizedResponse,
+  ApiUnauthorizedResponse
 } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import type { Request } from 'express'
@@ -44,7 +39,7 @@ export const Me: () => ParameterDecorator = createParamDecorator(
     // const ctx = GqlExecutionContext.create(context)
     // return ctx.getContext().req.user
     return null
-  },
+  }
 )
 
 export const Token: () => ParameterDecorator = createParamDecorator(
@@ -52,7 +47,7 @@ export const Token: () => ParameterDecorator = createParamDecorator(
     const request = context.switchToHttp().getRequest() as Request
     return request.headers['authorization'] // || request.headers['authorization']
       ?.substring(7)
-  },
+  }
 )
 
 export const NeedLogin: () => MethodDecorator & ClassDecorator = () => {
@@ -64,9 +59,9 @@ export const NeedLogin: () => MethodDecorator & ClassDecorator = () => {
       type: () => HttpExceptionType,
       example: {
         statusCode: 401,
-        message: 'Unauthorized',
-      },
-    }),
+        message: 'Unauthorized'
+      }
+    })
   )
 }
 export const OptionalLogin: () => MethodDecorator & ClassDecorator = () =>
@@ -82,30 +77,30 @@ export const NeedAdminLogin: () => MethodDecorator & ClassDecorator = () =>
       type: () => HttpExceptionType,
       example: {
         statusCode: 401,
-        message: 'Unauthorized',
-      },
+        message: 'Unauthorized'
+      }
     }),
     ApiForbiddenResponse({
       description: '无权限',
       type: () => HttpExceptionType,
       example: {
         statusCode: 403,
-        message: 'Forbidden',
-      },
-    }),
+        message: 'Forbidden'
+      }
+    })
   )
 
 export const NeedRefreshToken: () => MethodDecorator & ClassDecorator = () => {
   return applyDecorators(
     ApiBearerAuth(),
     UseGuards(AuthGuard('refresh_token')),
-    ApiResponse({ status: 401, description: 'refresh_token 无效' }),
+    ApiResponse({ status: 401, description: 'refresh_token 无效' })
   )
 }
 
 export const TryAuth: () => MethodDecorator & ClassDecorator = () => {
   return applyDecorators(
     UseGuards(LocalAuthGuard),
-    ApiResponse({ status: 401, description: '所有登录方式均未通过' }),
+    ApiResponse({ status: 401, description: '所有登录方式均未通过' })
   )
 }

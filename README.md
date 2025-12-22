@@ -48,7 +48,6 @@ $ bun test:cov
 
 使用 `nest g mo <module-name>` 命令生成模块后，接着开发对应的控制器和服务。
 
-
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

@@ -22,9 +22,9 @@ import { UploadModule } from '../../upload/upload.module'
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET', 'badapple'),
-        signOptions: { expiresIn: '7d' },
-      }),
-    }),
+        signOptions: { expiresIn: '7d' }
+      })
+    })
   ],
   providers: [
     UserService,
@@ -34,7 +34,7 @@ import { UploadModule } from '../../upload/upload.module'
     RolesGuard,
     AuthUsernamePasswordStrategy,
     AuthJwtStrategy,
-    AuthRefreshTokenStrategy,
+    AuthRefreshTokenStrategy
   ],
   exports: [
     UserService,
@@ -44,7 +44,7 @@ import { UploadModule } from '../../upload/upload.module'
     RolesGuard,
     AuthUsernamePasswordStrategy,
     AuthJwtStrategy,
-    AuthRefreshTokenStrategy,
-  ],
+    AuthRefreshTokenStrategy
+  ]
 })
 export class AuthModule {}

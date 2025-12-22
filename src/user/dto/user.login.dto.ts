@@ -2,23 +2,19 @@ import { ApiProperty, OmitType } from '@nestjs/swagger'
 import { IsString } from 'class-validator'
 import { User } from '../user.entity'
 
-export class UserDto extends OmitType(User, [
-  'password',
-  'secret',
-  'setAvatarUrl',
-]) {}
+export class UserDto extends OmitType(User, ['password', 'secret', 'setAvatarUrl']) {}
 
 export class UserLoginDTO {
   @ApiProperty({
     description: '用户名',
-    example: 'admin',
+    example: 'admin'
   })
   @IsString()
   username: string
 
   @ApiProperty({
     description: '密码',
-    example: 'admin',
+    example: 'admin'
   })
   @IsString()
   password: string
@@ -27,7 +23,7 @@ export class UserLoginDTO {
 export class UserLoginRespDTO {
   @ApiProperty({
     description: '用户 ID',
-    example: '1',
+    example: '1'
   })
   id: string
   @ApiProperty()
@@ -43,7 +39,7 @@ export class UserLoginRespDTO {
   refreshTokenExpiredAt: Date
 
   @ApiProperty({
-    type: () => UserDto,
+    type: () => UserDto
   })
   user: UserDto
 }

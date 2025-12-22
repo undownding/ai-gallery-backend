@@ -22,10 +22,10 @@ import { AuthRefreshTokenStrategy } from './auth/strategies/auth-refresh-token.s
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
-      }),
+        signOptions: { expiresIn: '7d' }
+      })
     }),
-    UploadModule,
+    UploadModule
   ],
   providers: [
     UserService,
@@ -35,9 +35,9 @@ import { AuthRefreshTokenStrategy } from './auth/strategies/auth-refresh-token.s
     RolesGuard,
     AuthUsernamePasswordStrategy,
     AuthJwtStrategy,
-    AuthRefreshTokenStrategy,
+    AuthRefreshTokenStrategy
   ],
   controllers: [UserController],
-  exports: [UserService],
+  exports: [UserService]
 })
 export class UserModule {}

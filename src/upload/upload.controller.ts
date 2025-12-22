@@ -8,14 +8,9 @@ import {
   NotFoundException,
   Param,
   Post,
-  Query,
+  Query
 } from '@nestjs/common'
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { UploadService } from './upload.service'
 import { Upload } from './upload.entity'
 import { UploadQueryDTO } from './upload.dto'
@@ -37,27 +32,24 @@ export class UploadController {
     返回一个特殊的 upload 对象，其中 url 字段即为 presigned URL。
     
     对其发起 PUT 请求即可上传文件。
-    `,
+    `
   })
   @ApiOkResponse({
-    type: () => Upload,
+    type: () => Upload
   })
   @ApiBearerAuth()
   @OptionalLogin()
-  async getPresignedUrl(
-    @Query() query: UploadQueryDTO,
-    @Me() me: IToken,
-  ): Promise<Upload> {
+  async getPresignedUrl(@Query() query: UploadQueryDTO, @Me() me: IToken): Promise<Upload> {
     return this.uploadService.presign(query.ext ?? 'jpg', me.id)
   }
 
   @Post(':uploadId/complete')
   @ApiOperation({
     summary: 'Complete upload',
-    description: 'Set ETag and size for the uploaded file',
+    description: 'Set ETag and size for the uploaded file'
   })
   @ApiOkResponse({
-    type: () => Upload,
+    type: () => Upload
   })
   @HttpCode(HttpStatus.OK)
   async completeUpload(@Param('uploadId') id: string): Promise<Upload> {
@@ -67,8 +59,7 @@ export class UploadController {
     }
 
     // Validate UUID format (basic validation)
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(id)) {
       throw new BadRequestException('Invalid upload ID format')
     }

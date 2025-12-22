@@ -6,17 +6,14 @@ import { UserService } from '../../user.service'
 import { User } from '../../user.entity'
 
 @Injectable()
-export class AuthUsernamePasswordStrategy extends PassportStrategy(
-  Strategy,
-  'username-password',
-) {
+export class AuthUsernamePasswordStrategy extends PassportStrategy(Strategy, 'username-password') {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UserService,
+    private readonly userService: UserService
   ) {
     super({
       usernameField: 'username',
-      passwordField: 'password',
+      passwordField: 'password'
     })
   }
 

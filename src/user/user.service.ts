@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-} from '@nestjs/common'
+import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DeepPartial, Repository } from 'typeorm'
 import { randomBytes } from 'crypto'
@@ -27,15 +22,15 @@ export class UserService extends BaseCrudService<User> {
   async getByUserName(username: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: {
-        username,
-      },
+        username
+      }
     })
   }
 
   public async createUser(
     username: string,
     password: string,
-    role = Role.UNCHECKED_USER,
+    role = Role.UNCHECKED_USER
   ): Promise<User> {
     // 检查用户名是否已存在
     const existingUser = await this.getByUserName(username)
@@ -46,7 +41,7 @@ export class UserService extends BaseCrudService<User> {
     // 生成密钥并哈希密码
     const secret = randomBytes(32).toString('base64')
     const hashedPassword = await argon2.hash(password, {
-      secret: Buffer.from(secret, 'base64'),
+      secret: Buffer.from(secret, 'base64')
     })
 
     // 创建用户
@@ -55,20 +50,17 @@ export class UserService extends BaseCrudService<User> {
       password: hashedPassword,
       role,
       secret,
-      nickname: username, // 默认使用用户名作为昵称
+      nickname: username // 默认使用用户名作为昵称
     })
 
     // 创建初始积分账户
     return user
   }
 
-  override async updateById(
-    id: IDType,
-    data: DeepPartial<User>,
-  ): Promise<User> {
+  override async updateById(id: IDType, data: DeepPartial<User>): Promise<User> {
     if (data.username) {
       const exists = await this.userRepository.findOne({
-        where: { username: data.username },
+        where: { username: data.username }
       })
       if (exists && exists.id !== id) {
         throw new ConflictException('Username already exists')
@@ -84,7 +76,7 @@ export class UserService extends BaseCrudService<User> {
     }
     const secret = randomBytes(32).toString('base64')
     const hashedPassword = await argon2.hash(newPassword, {
-      secret: Buffer.from(secret, 'base64'),
+      secret: Buffer.from(secret, 'base64')
     })
     return this.updateById(id, { password: hashedPassword, secret })
   }

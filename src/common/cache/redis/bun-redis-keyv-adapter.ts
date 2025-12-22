@@ -32,9 +32,7 @@ export class BunRedisKeyvAdapter implements KeyvStoreAdapter, IEventEmitter {
     return (await this.redisClient.get(key)) as any
   }
 
-  async getMany<Value>(
-    keys: string[],
-  ): Promise<Array<StoredData<Value | undefined>>> {
+  async getMany<Value>(keys: string[]): Promise<Array<StoredData<Value | undefined>>> {
     return (await this.redisClient.mget(...keys)).map((value) => value as any)
   }
 
@@ -47,7 +45,7 @@ export class BunRedisKeyvAdapter implements KeyvStoreAdapter, IEventEmitter {
   }
 
   iterator<Value>(
-    namespace?: string,
+    namespace?: string
   ): AsyncGenerator<Array<string | Awaited<Value> | undefined>, void> {
     throw new Error('Iterator not implemented.')
   }
@@ -69,11 +67,7 @@ export class BunRedisKeyvAdapter implements KeyvStoreAdapter, IEventEmitter {
     }
   }
 
-  async setMany(
-    values: Array<{ key: string; value: any; ttl?: number }>,
-  ): Promise<void> {
-    await Promise.all(
-      values.map(({ key, value, ttl }) => this.set(key, value, ttl)),
-    )
+  async setMany(values: Array<{ key: string; value: any; ttl?: number }>): Promise<void> {
+    await Promise.all(values.map(({ key, value, ttl }) => this.set(key, value, ttl)))
   }
 }
