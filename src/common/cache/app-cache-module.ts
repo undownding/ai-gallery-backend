@@ -1,6 +1,6 @@
-import {CacheModule} from '@nestjs/cache-manager'
-import {ConfigModule, ConfigService} from '@nestjs/config'
-import {BunRedisKeyvAdapter} from './redis/bun-redis-keyv-adapter'
+import { CacheModule } from '@nestjs/cache-manager'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import { BunRedisKeyvAdapter } from './redis/bun-redis-keyv-adapter'
 
 export function createAppCacheModule() {
   return CacheModule.registerAsync({

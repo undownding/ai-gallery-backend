@@ -1,14 +1,14 @@
-import {Processor, WorkerHost} from '@nestjs/bullmq'
-import {Job} from 'bullmq'
-import {CachedTask, GeminiTask, InlineContent} from './task.type'
-import {Inject} from '@nestjs/common'
-import {GoogleGenAI} from '@google/genai'
-import {UploadService} from '../../upload/upload.service'
-import {Upload} from '../../upload/upload.entity'
-import {BunRedisClient} from './task.constants'
-import {RedisClient} from 'bun'
-import {type Cache, CACHE_MANAGER} from "@nestjs/cache-manager"
-import {isEqual} from "lodash"
+import { Processor, WorkerHost } from '@nestjs/bullmq'
+import { Job } from 'bullmq'
+import { CachedTask, GeminiTask, InlineContent } from './task.type'
+import { Inject } from '@nestjs/common'
+import { GoogleGenAI } from '@google/genai'
+import { UploadService } from '../../upload/upload.service'
+import { Upload } from '../../upload/upload.entity'
+import { BunRedisClient } from './task.constants'
+import { RedisClient } from 'bun'
+import { type Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
+import { isEqual } from 'lodash'
 
 @Processor('gemini-task-queue')
 export class TaskGeminiProcessor extends WorkerHost {
