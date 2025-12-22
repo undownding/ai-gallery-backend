@@ -14,8 +14,9 @@ export function createDataSourceOptions(entities?: MixedList<any>): DataSourceOp
         type: 'postgres',
         url: process.env.POSTGRES_URL,
         synchronize: false,
+        entities,
         migrations: ['migrations/*.ts'],
-        logging: false
+        logging: true
       }
     case 'migration':
       return {
