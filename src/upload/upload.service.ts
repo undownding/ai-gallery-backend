@@ -1,19 +1,18 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import {Inject, Injectable, Logger} from '@nestjs/common'
 import sharp from 'sharp'
 import dayjs from 'dayjs'
-import { Upload } from './upload.entity'
-import { v7 as uuidv7 } from 'uuid'
-import { isEmpty, isNull } from 'lodash'
-import { URL } from 'url'
-import { S3_BUCKET, S3_CLIENT } from '../s3/s3.constants'
-import { BaseCrudService } from '../common/base-crud-service'
+import {Upload} from './upload.entity'
+import {v7 as uuidv7} from 'uuid'
+import {isEmpty, isNull} from 'lodash'
+import {URL} from 'url'
+import {S3_BUCKET, S3_CLIENT} from '../s3/s3.constants'
+import {BaseCrudService} from '../common/base-crud-service'
 
 export type UploadOwner = {
   id?: string | null
   login?: string | null
 }
 
-const BASE_UPLOAD_PREFIX = 'public/user-uploads'
 const DEFAULT_OWNER_SEGMENT = 'anonymous'
 
 function buildObjectKey(owner: UploadOwner | null | undefined, ext: string) {
@@ -25,7 +24,7 @@ function buildObjectKey(owner: UploadOwner | null | undefined, ext: string) {
   const ownerSegment = `${ownerLogin}_${ownerId}`
   return {
     id,
-    key: `${BASE_UPLOAD_PREFIX}/${prefix}/${ownerSegment}/${id}.${normalizedExt}`
+    key: `${prefix}/${ownerSegment}/${id}.${normalizedExt}`
   }
 }
 
