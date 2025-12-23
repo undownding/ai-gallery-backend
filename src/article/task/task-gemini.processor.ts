@@ -30,123 +30,157 @@ export class TaskGeminiProcessor extends WorkerHost {
   private readonly logger = new Logger(TaskGeminiProcessor.name)
 
   async process(job: Job<GeminiTask>): Promise<void> {
-    this.logger.debug(`Gemini API Base URL: ${this.configService.get('AI_GATEWAY_GEMINI')}`)
-    this.logger.debug(`Gemini API Key: ${this.configService.get('GEMINI_API_KEY')}`)
-    this.logger.debug(`AI Gateway Token: ${this.configService.get('AI_GATEWAY_TOKEN')}`)
-    const { aspectRatio, imageSize, referenceUploadIds, prompt, userId } = job.data
     const cacheKey = `gemini-task:${job.id}`
     const textChannel = `${cacheKey}:text`
     const imageChannel = `${cacheKey}:image`
     const doneChannel = `${cacheKey}:done`
+    const errorChannel = `${cacheKey}:error`
 
-    this.logger.debug(`Job ${job.id}: starting Gemini task for user ${userId}`)
-
-    let currentState: CachedTask = (await this.cacheManager.get<CachedTask>(cacheKey)) ?? {
-      isDone: false,
-      text: null,
-      upload: null
-    }
-    await this.cacheManager.set(cacheKey, currentState)
-    this.logger.debug(`Job ${job.id}: initialized cache state`)
-
-    const persistState = async (next: CachedTask) => {
-      if (!isEqual(currentState, next)) {
-        await this.cacheManager.set(cacheKey, next)
-        currentState = next
+    const emitError = async (error: Error | unknown) => {
+      const errorMessage = error instanceof Error ? error.message : String(error) || 'Generation failed.'
+      const errorPayload = JSON.stringify({ message: errorMessage })
+      try {
+        await this.redis.set(errorChannel, errorPayload)
+        await this.redis.publish(errorChannel, errorPayload)
+        this.logger.error(`Job ${job.id}: error emitted - ${errorMessage}`)
+      } catch (publishError) {
+        const err = publishError as Error
+        this.logger.error(`Job ${job.id}: failed to publish error: ${err.message}`)
       }
     }
 
-    const referenceContents: InlineContent[] = (
-      await Promise.all(
-        (referenceUploadIds || [])
-          .filter(Boolean)
-          .map(async (id) => await this.uploadService.getBase64Object(id))
+    try {
+      this.logger.debug(`Gemini API Base URL: ${this.configService.get('AI_GATEWAY_GEMINI')}`)
+      this.logger.debug(`Gemini API Key: ${this.configService.get('GEMINI_API_KEY')}`)
+      this.logger.debug(`AI Gateway Token: ${this.configService.get('AI_GATEWAY_TOKEN')}`)
+      const { aspectRatio, imageSize, referenceUploadIds, prompt, userId } = job.data
+
+      this.logger.debug(`Job ${job.id}: starting Gemini task for user ${userId}`)
+
+      let currentState: CachedTask = (await this.cacheManager.get<CachedTask>(cacheKey)) ?? {
+        isDone: false,
+        text: null,
+        upload: null
+      }
+      await this.cacheManager.set(cacheKey, currentState)
+      this.logger.debug(`Job ${job.id}: initialized cache state`)
+
+      const persistState = async (next: CachedTask) => {
+        if (!isEqual(currentState, next)) {
+          await this.cacheManager.set(cacheKey, next)
+          currentState = next
+        }
+      }
+
+      const referenceContents: InlineContent[] = (
+        await Promise.all(
+          (referenceUploadIds || [])
+            .filter(Boolean)
+            .map(async (id) => await this.uploadService.getBase64Object(id))
+        )
       )
-    )
-      .filter(Boolean)
-      .map((inlineData: { mimeType: string; data: string }) => ({
-        inlineData
-      }))
-    this.logger.debug(`Job ${job.id}: prepared ${referenceContents.length} reference contents`)
-    const contents: InlineContent[] = [{ text: prompt }, ...referenceContents]
-    const stream = await this.ai.models.generateContentStream({
-      model: 'gemini-3-pro-image-preview',
-      contents,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        thinkingConfig: {
-          includeThoughts: true
-        },
-        imageConfig: {
-          aspectRatio,
-          imageSize
-        }
-      }
-    })
-    this.logger.debug(
-      `Job ${job.id}: content stream opened (aspectRatio=${aspectRatio ?? 'auto'}, imageSize=${
-        imageSize ?? 'default'
-      })`
-    )
-
-    let aggregatedText = currentState.text ?? ''
-    let lastUpload: Upload | null = currentState.upload ?? null
-
-    for await (const chunk of stream) {
-      const candidates = chunk.candidates ?? []
-
-      for (const candidate of candidates) {
-        const parts = candidate.content?.parts ?? []
-        for (const part of parts) {
-          const text = (part as { text?: string }).text
-          if (text) {
-            aggregatedText = aggregatedText ? `${aggregatedText}${text}` : text
-            await this.redis.set(textChannel, aggregatedText)
-            await this.redis.publish(textChannel, aggregatedText)
-            await persistState({
-              isDone: false,
-              text: aggregatedText || null,
-              upload: lastUpload
-            })
-            this.logger.debug(
-              `Job ${job.id}: received text chunk (chunkLen=${text.length}, totalLen=${aggregatedText.length})`
-            )
-            continue
-          }
-
-          const inlineData = (part as { inlineData?: { data?: string; mimeType?: string } })
-            .inlineData
-          if (inlineData?.data) {
-            lastUpload = await this.uploadService.uploadBase64Image(
-              inlineData.data,
-              inlineData.mimeType,
-              { id: userId }
-            )
-            const uploadPayload = JSON.stringify(lastUpload)
-            await this.redis.set(imageChannel, uploadPayload)
-            await this.redis.publish(imageChannel, uploadPayload)
-            await persistState({
-              isDone: false,
-              text: aggregatedText || null,
-              upload: lastUpload
-            })
-            this.logger.debug(
-              `Job ${job.id}: generated image upload ${lastUpload?.id ?? 'unknown'}`
-            )
+        .filter(Boolean)
+        .map((inlineData: { mimeType: string; data: string }) => ({
+          inlineData
+        }))
+      this.logger.debug(`Job ${job.id}: prepared ${referenceContents.length} reference contents`)
+      const contents: InlineContent[] = [{ text: prompt }, ...referenceContents]
+      
+      const stream = await this.ai.models.generateContentStream({
+        model: 'gemini-3-pro-image-preview',
+        contents,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          thinkingConfig: {
+            includeThoughts: true
+          },
+          imageConfig: {
+            aspectRatio,
+            imageSize
           }
         }
-      }
-    }
+      })
+      this.logger.debug(
+        `Job ${job.id}: content stream opened (aspectRatio=${aspectRatio ?? 'auto'}, imageSize=${
+          imageSize ?? 'default'
+        })`
+      )
 
-    const finalTask: CachedTask = {
-      isDone: true,
-      text: aggregatedText || null,
-      upload: lastUpload
+      let aggregatedText = currentState.text ?? ''
+      let lastUpload: Upload | null = currentState.upload ?? null
+
+      try {
+        for await (const chunk of stream) {
+          const candidates = chunk.candidates ?? []
+
+          for (const candidate of candidates) {
+            const parts = candidate.content?.parts ?? []
+            for (const part of parts) {
+              try {
+                const text = (part as { text?: string }).text
+                if (text) {
+                  aggregatedText = aggregatedText ? `${aggregatedText}${text}` : text
+                  await this.redis.set(textChannel, aggregatedText)
+                  await this.redis.publish(textChannel, aggregatedText)
+                  await persistState({
+                    isDone: false,
+                    text: aggregatedText || null,
+                    upload: lastUpload
+                  })
+                  this.logger.debug(
+                    `Job ${job.id}: received text chunk (chunkLen=${text.length}, totalLen=${aggregatedText.length})`
+                  )
+                  continue
+                }
+
+                const inlineData = (part as { inlineData?: { data?: string; mimeType?: string } })
+                  .inlineData
+                if (inlineData?.data) {
+                  lastUpload = await this.uploadService.uploadBase64Image(
+                    inlineData.data,
+                    inlineData.mimeType,
+                    { id: userId }
+                  )
+                  const uploadPayload = JSON.stringify(lastUpload)
+                  await this.redis.set(imageChannel, uploadPayload)
+                  await this.redis.publish(imageChannel, uploadPayload)
+                  await persistState({
+                    isDone: false,
+                    text: aggregatedText || null,
+                    upload: lastUpload
+                  })
+                  this.logger.debug(
+                    `Job ${job.id}: generated image upload ${lastUpload?.id ?? 'unknown'}`
+                  )
+                }
+              } catch (chunkError) {
+                this.logger.error(`Job ${job.id}: error processing chunk: ${chunkError}`, chunkError instanceof Error ? chunkError.stack : undefined)
+                await emitError(chunkError)
+                throw chunkError
+              }
+            }
+          }
+        }
+      } catch (streamError) {
+        this.logger.error(`Job ${job.id}: error in stream processing: ${streamError}`, streamError instanceof Error ? streamError.stack : undefined)
+        await emitError(streamError)
+        throw streamError
+      }
+
+      const finalTask: CachedTask = {
+        isDone: true,
+        text: aggregatedText || null,
+        upload: lastUpload
+      }
+      await persistState(finalTask)
+      await this.redis.publish(doneChannel, 'done')
+      this.logger.debug(
+        `Job ${job.id}: completed (hasText=${Boolean(aggregatedText)}, hasImage=${Boolean(lastUpload)})`
+      )
+    } catch (error) {
+      this.logger.error(`Job ${job.id}: task failed: ${error}`, error instanceof Error ? error.stack : undefined)
+      await emitError(error)
+      throw error
     }
-    await persistState(finalTask)
-    await this.redis.publish(doneChannel, 'done')
-    this.logger.debug(
-      `Job ${job.id}: completed (hasText=${Boolean(aggregatedText)}, hasImage=${Boolean(lastUpload)})`
-    )
   }
 }

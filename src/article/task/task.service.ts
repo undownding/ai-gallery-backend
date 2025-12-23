@@ -48,18 +48,11 @@ export class TaskService {
       let subscriber: RedisClient | null = null
       let disposed = false
       const cacheKey = `gemini-task:${taskId}`
+      const textChannel = `${cacheKey}:text`
+      const imageChannel = `${cacheKey}:image`
       const doneChannel = `${cacheKey}:done`
-      const channels = [`${cacheKey}:text`, `${cacheKey}:image`, doneChannel]
-
-      const emptyState = (): CachedTask => ({
-        isDone: false,
-        text: null,
-        upload: null
-      })
-
-      const emitState = (state: CachedTask | null, type: string = 'task-state') => {
-        observer.next({ type, data: state ?? emptyState() })
-      }
+      const errorChannel = `${cacheKey}:error`
+      const channels = [textChannel, imageChannel, doneChannel, errorChannel]
 
       const stop = async (shouldComplete = true) => {
         if (disposed) {
@@ -86,10 +79,23 @@ export class TaskService {
         }
       }
 
-      const emitFinalStateAndStop = async () => {
-        const latest = (await this.cacheManager.get<CachedTask>(cacheKey)) || null
-        emitState(latest)
-        await stop()
+      const emitDoneAndStop = async () => {
+        try {
+          const latest = (await this.cacheManager.get<CachedTask>(cacheKey)) || null
+          const donePayload: { text?: string; upload?: Upload } = {}
+          if (latest?.text) {
+            donePayload.text = latest.text
+          }
+          if (latest?.upload) {
+            donePayload.upload = latest.upload
+          }
+          observer.next({ type: 'message', data: { event: 'done', data: donePayload } })
+          await stop()
+        } catch (error) {
+          const err = error as Error
+          this.logger.error(`Failed to emit done event: ${err.message}`, err.stack)
+          await stop()
+        }
       }
 
       const listener: RedisClient.StringPubSubListener = (payload, channel) => {
@@ -99,32 +105,66 @@ export class TaskService {
           }
           try {
             if (channel === doneChannel) {
-              await emitFinalStateAndStop()
+              await emitDoneAndStop()
               return
             }
-            if (channel.endsWith(':text')) {
-              observer.next({ type: 'task-text', data: { text: payload } })
-            } else if (channel.endsWith(':image')) {
+            if (channel === errorChannel) {
+              let errorMessage = 'Generation failed.'
+              try {
+                const errorData = JSON.parse(payload)
+                if (typeof errorData?.message === 'string') {
+                  errorMessage = errorData.message
+                } else if (typeof payload === 'string' && payload) {
+                  errorMessage = payload
+                }
+              } catch {
+                if (typeof payload === 'string' && payload) {
+                  errorMessage = payload
+                }
+              }
+              observer.next({ 
+                type: 'message', 
+                data: { event: 'error', data: { message: errorMessage } } 
+              })
+              await stop(false)
+              return
+            }
+            if (channel === textChannel) {
+              if (typeof payload === 'string' && payload) {
+                observer.next({ 
+                  type: 'message', 
+                  data: { event: 'text', data: { text: payload } } 
+                })
+              }
+              return
+            }
+            if (channel === imageChannel) {
               const upload = this.parseUploadPayload(payload)
               if (upload) {
-                observer.next({ type: 'task-image', data: upload })
+                observer.next({ 
+                  type: 'message', 
+                  data: { event: 'image', data: upload } 
+                })
               }
+              return
             }
           } catch (error) {
             const err = error as Error
             this.logger.error(`Failed to process task message: ${err.message}`, err.stack)
+            observer.next({ 
+              type: 'message', 
+              data: { event: 'error', data: { message: err.message || 'Generation failed.' } } 
+            })
             await stop(false)
-            observer.error(err)
           }
         })()
       }
 
       ;(async () => {
         try {
-          const cachedState = (await this.cacheManager.get<CachedTask>(cacheKey)) || emptyState()
-          emitState(cachedState)
+          const cachedState = (await this.cacheManager.get<CachedTask>(cacheKey)) || null
           if (cachedState?.isDone) {
-            await stop()
+            await emitDoneAndStop()
             return
           }
 
@@ -132,8 +172,12 @@ export class TaskService {
           await subscriber.subscribe(channels, listener)
         } catch (error) {
           const err = error as Error
+          this.logger.error(`Failed to subscribe task channels: ${err.message}`, err.stack)
+          observer.next({ 
+            type: 'message', 
+            data: { event: 'error', data: { message: err.message || 'Failed to subscribe to task updates.' } } 
+          })
           await stop(false)
-          observer.error(err)
         }
       })()
 
