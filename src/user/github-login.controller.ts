@@ -1,4 +1,4 @@
-import {Controller, Get, HttpCode, HttpStatus, Post, Query, Redirect} from '@nestjs/common'
+import {Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Redirect} from '@nestjs/common'
 import {ApiOkResponse, ApiOperation, ApiTags} from '@nestjs/swagger'
 import {GithubLoginService} from './github-login.service'
 import {GithubCallbackQueryDto, GithubRedirectQueryDto} from './dto/github-query.dto'
@@ -22,8 +22,8 @@ export class GithubLoginController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle GitHub OAuth callback and issue JWT token pair' })
   @ApiOkResponse({ description: 'Authenticated session payload', type: TokenPayloadDto })
-  handleCallback(@Query() query: GithubCallbackQueryDto): Promise<TokenPayloadDto> {
-    const { code } = query
+  handleCallback(@Body() body: GithubCallbackQueryDto): Promise<TokenPayloadDto> {
+    const { code } = body
     return this.githubLoginService.exchangeCodeForSession(code)
   }
 }
