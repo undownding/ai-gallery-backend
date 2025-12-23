@@ -1,14 +1,15 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq'
-import { Job } from 'bullmq'
-import { CachedTask, GeminiTask, InlineContent } from './task.type'
-import { Inject, Logger } from '@nestjs/common'
-import { GoogleGenAI } from '@google/genai'
-import { UploadService } from '../../upload/upload.service'
-import { Upload } from '../../upload/upload.entity'
-import { BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient } from './task.constants'
-import { RedisClient } from 'bun'
-import { type Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
-import { isEqual } from 'lodash'
+import {Processor, WorkerHost} from '@nestjs/bullmq'
+import {Job} from 'bullmq'
+import {CachedTask, GeminiTask, InlineContent} from './task.type'
+import {Inject, Logger} from '@nestjs/common'
+import {GoogleGenAI} from '@google/genai'
+import {UploadService} from '../../upload/upload.service'
+import {Upload} from '../../upload/upload.entity'
+import {BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient} from './task.constants'
+import {RedisClient} from 'bun'
+import {type Cache, CACHE_MANAGER} from '@nestjs/cache-manager'
+import {isEqual} from 'lodash'
+import {ConfigService} from "@nestjs/config"
 
 @Processor(GEMINI_TASK_QUEUE)
 export class TaskGeminiProcessor extends WorkerHost {
@@ -23,9 +24,15 @@ export class TaskGeminiProcessor extends WorkerHost {
 
   @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
 
+  @Inject(ConfigService)
+  private readonly configService: ConfigService
+
   private readonly logger = new Logger(TaskGeminiProcessor.name)
 
   async process(job: Job<GeminiTask>): Promise<void> {
+    this.logger.debug(`Gemini API Base URL: ${this.configService.get('AI_GATEWAY_GEMINI')}`)
+    this.logger.debug(`Gemini API Key: ${this.configService.get('GEMINI_API_KEY')}`)
+    this.logger.debug(`AI Gateway Token: ${this.configService.get('AI_GATEWAY_TOKEN')}`)
     const { aspectRatio, imageSize, referenceUploadIds, prompt, userId } = job.data
     const cacheKey = `gemini-task:${job.id}`
     const textChannel = `${cacheKey}:text`
