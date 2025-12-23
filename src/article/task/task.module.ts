@@ -16,13 +16,19 @@ import {TaskGeminiProcessor} from './task-gemini.processor'
       provide: GoogleGenAIClient,
       inject: [ConfigService],
       useFactory: (configService: ConfigService): GoogleGenAI =>
+        // new GoogleGenAI({
+        //   apiKey: configService.get('GEMINI_API_KEY'),
+        //   httpOptions: {
+        //     baseUrl: configService.get('AI_GATEWAY_GEMINI'),
+        //     headers: {
+        //       'cf-aig-authorization': `Bearer ${configService.get('AI_GATEWAY_TOKEN')}`
+        //     }
+        //   }
+        // })
         new GoogleGenAI({
-          apiKey: configService.get('GEMINI_API_KEY'),
+          apiKey: configService.get('AI_GATEWAY_TOKEN'),
           httpOptions: {
-            baseUrl: configService.get('AI_GATEWAY_GEMINI'),
-            headers: {
-              'cf-aig-authorization': `Bearer ${configService.get('AI_GATEWAY_TOKEN')}`
-            }
+            baseUrl: configService.get('AI_GATEWAY_GEMINI')
           }
         })
     },
