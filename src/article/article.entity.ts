@@ -1,4 +1,5 @@
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
@@ -7,7 +8,7 @@ import {
   ManyToMany,
   ManyToOne,
   OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   type Relation,
   RelationId,
   UpdateDateColumn
@@ -16,10 +17,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 import { User } from '../user/user.entity'
 import { Upload } from '../upload/upload.entity'
+import { v7 } from 'uuid'
 
 @Entity()
 export class Article {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   @ApiProperty({ description: 'Primary identifier' })
   id: string
 
@@ -76,4 +78,9 @@ export class Article {
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date
+
+  @BeforeInsert()
+  generateId() {
+    this.id = v7()
+  }
 }
