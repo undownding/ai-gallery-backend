@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Job } from 'bullmq'
 import { CachedTask, GeminiTask, InlineContent } from './task.type'
-import { Inject } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { GoogleGenAI } from '@google/genai'
 import { UploadService } from '../../upload/upload.service'
 import { Upload } from '../../upload/upload.entity'
@@ -23,6 +23,8 @@ export class TaskGeminiProcessor extends WorkerHost {
 
   @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
 
+  private readonly logger = new Logger(TaskGeminiProcessor.name)
+
   async process(job: Job<GeminiTask>): Promise<void> {
     const { aspectRatio, imageSize, referenceUploadIds, prompt, userId } = job.data
     const cacheKey = `gemini-task:${job.id}`
@@ -30,12 +32,15 @@ export class TaskGeminiProcessor extends WorkerHost {
     const imageChannel = `${cacheKey}:image`
     const doneChannel = `${cacheKey}:done`
 
+    this.logger.debug(`Job ${job.id}: starting Gemini task for user ${userId}`)
+
     let currentState: CachedTask = (await this.cacheManager.get<CachedTask>(cacheKey)) ?? {
       isDone: false,
       text: null,
       upload: null
     }
     await this.cacheManager.set(cacheKey, currentState)
+    this.logger.debug(`Job ${job.id}: initialized cache state`)
 
     const persistState = async (next: CachedTask) => {
       if (!isEqual(currentState, next)) {
@@ -55,6 +60,7 @@ export class TaskGeminiProcessor extends WorkerHost {
       .map((inlineData: { mimeType: string; data: string }) => ({
         inlineData
       }))
+    this.logger.debug(`Job ${job.id}: prepared ${referenceContents.length} reference contents`)
     const contents: InlineContent[] = [{ text: prompt }, ...referenceContents]
     const stream = await this.ai.models.generateContentStream({
       model: 'gemini-3-pro-image-preview',
@@ -70,6 +76,11 @@ export class TaskGeminiProcessor extends WorkerHost {
         }
       }
     })
+    this.logger.debug(
+      `Job ${job.id}: content stream opened (aspectRatio=${aspectRatio ?? 'auto'}, imageSize=${
+        imageSize ?? 'default'
+      })`
+    )
 
     let aggregatedText = currentState.text ?? ''
     let lastUpload: Upload | null = currentState.upload ?? null
@@ -90,6 +101,9 @@ export class TaskGeminiProcessor extends WorkerHost {
               text: aggregatedText || null,
               upload: lastUpload
             })
+            this.logger.debug(
+              `Job ${job.id}: received text chunk (chunkLen=${text.length}, totalLen=${aggregatedText.length})`
+            )
             continue
           }
 
@@ -109,6 +123,9 @@ export class TaskGeminiProcessor extends WorkerHost {
               text: aggregatedText || null,
               upload: lastUpload
             })
+            this.logger.debug(
+              `Job ${job.id}: generated image upload ${lastUpload?.id ?? 'unknown'}`
+            )
           }
         }
       }
@@ -121,5 +138,8 @@ export class TaskGeminiProcessor extends WorkerHost {
     }
     await persistState(finalTask)
     await this.redis.publish(doneChannel, 'done')
+    this.logger.debug(
+      `Job ${job.id}: completed (hasText=${Boolean(aggregatedText)}, hasImage=${Boolean(lastUpload)})`
+    )
   }
 }

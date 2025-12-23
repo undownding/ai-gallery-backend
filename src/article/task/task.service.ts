@@ -1,14 +1,15 @@
-import {Inject, Injectable, Logger, MessageEvent} from '@nestjs/common'
-import {CACHE_MANAGER} from '@nestjs/cache-manager'
-import type {Cache} from 'cache-manager'
-import {Observable} from 'rxjs'
-import {RedisClient} from 'bun'
-import {InjectQueue} from '@nestjs/bullmq'
-import {Queue} from 'bullmq'
-import {BunRedisClient, GEMINI_TASK_QUEUE} from './task.constants'
-import {CachedTask, GeminiTask} from './task.type'
-import {Upload} from '../../upload/upload.entity'
-import {GeminiTaskCreateDto} from './dto/gemini-task-create.dto'
+import { Inject, Injectable, Logger, MessageEvent } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import type { Cache } from 'cache-manager'
+import { Observable } from 'rxjs'
+import { RedisClient } from 'bun'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Queue } from 'bullmq'
+import { v7 as uuidv7 } from 'uuid'
+import { BunRedisClient, GEMINI_TASK_QUEUE } from './task.constants'
+import { CachedTask, GeminiTask } from './task.type'
+import { Upload } from '../../upload/upload.entity'
+import { GeminiTaskCreateDto } from './dto/gemini-task-create.dto'
 
 @Injectable()
 export class TaskService {
@@ -22,17 +23,15 @@ export class TaskService {
   ) {}
 
   async createGeminiTask(body: GeminiTaskCreateDto, userId: string): Promise<string> {
-    const job = await this.geminiTaskQueue.add(
+    const taskId = uuidv7()
+    await this.geminiTaskQueue.add(
       'generate',
       { ...body, userId },
       {
+        jobId: taskId,
         removeOnComplete: true
       }
     )
-    const taskId = job.id?.toString()
-    if (!taskId) {
-      throw new Error('Failed to enqueue Gemini task')
-    }
 
     const cacheKey = `gemini-task:${taskId}`
     await this.cacheManager.set(cacheKey, {
