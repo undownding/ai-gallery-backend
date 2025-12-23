@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common'
-import { BullModule } from '@nestjs/bullmq'
-import { BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient } from './task.constants'
-import { ConfigModule, ConfigService } from '@nestjs/config'
-import { GoogleGenAI } from '@google/genai'
-import { UploadModule } from '../../upload/upload.module'
-import { RedisClient } from 'bun'
-import { TaskController } from './task.controller'
-import { TaskService } from './task.service'
-import { TaskGeminiProcessor } from './task-gemini.processor'
+import {Module} from '@nestjs/common'
+import {BullModule} from '@nestjs/bullmq'
+import {BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient} from './task.constants'
+import {ConfigModule, ConfigService} from '@nestjs/config'
+import {GoogleGenAI} from '@google/genai'
+import {UploadModule} from '../../upload/upload.module'
+import {RedisClient} from 'bun'
+import {TaskController} from './task.controller'
+import {TaskService} from './task.service'
+import {TaskGeminiProcessor} from './task-gemini.processor'
 
 @Module({
   imports: [ConfigModule, UploadModule, BullModule.registerQueue({ name: GEMINI_TASK_QUEUE })],
@@ -21,7 +21,7 @@ import { TaskGeminiProcessor } from './task-gemini.processor'
           httpOptions: {
             baseUrl: configService.get('AI_GATEWAY_GEMINI'),
             headers: {
-              Authorization: `Bearer ${configService.get('AI_GATEWAY_TOKEN')}`
+              'cf-aig-authorization': `Bearer ${configService.get('AI_GATEWAY_TOKEN')}`
             }
           }
         })
