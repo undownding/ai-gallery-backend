@@ -89,7 +89,7 @@ export class TaskService {
           if (latest?.upload) {
             donePayload.upload = latest.upload
           }
-          observer.next({ type: 'message', data: { event: 'done', data: donePayload } })
+          observer.next({ type: 'done', data: donePayload })
           await stop()
         } catch (error) {
           const err = error as Error
@@ -123,8 +123,8 @@ export class TaskService {
                 }
               }
               observer.next({ 
-                type: 'message', 
-                data: { event: 'error', data: { message: errorMessage } } 
+                type: 'error', 
+                data: { message: errorMessage } 
               })
               await stop(false)
               return
@@ -132,8 +132,8 @@ export class TaskService {
             if (channel === textChannel) {
               if (typeof payload === 'string' && payload) {
                 observer.next({ 
-                  type: 'message', 
-                  data: { event: 'text', data: { text: payload } } 
+                  type: 'text', 
+                  data: { text: payload } 
                 })
               }
               return
@@ -142,8 +142,8 @@ export class TaskService {
               const upload = this.parseUploadPayload(payload)
               if (upload) {
                 observer.next({ 
-                  type: 'message', 
-                  data: { event: 'image', data: upload } 
+                  type: 'image', 
+                  data: upload 
                 })
               }
               return
@@ -152,8 +152,8 @@ export class TaskService {
             const err = error as Error
             this.logger.error(`Failed to process task message: ${err.message}`, err.stack)
             observer.next({ 
-              type: 'message', 
-              data: { event: 'error', data: { message: err.message || 'Generation failed.' } } 
+              type: 'error', 
+              data: { message: err.message || 'Generation failed.' } 
             })
             await stop(false)
           }
@@ -174,8 +174,8 @@ export class TaskService {
           const err = error as Error
           this.logger.error(`Failed to subscribe task channels: ${err.message}`, err.stack)
           observer.next({ 
-            type: 'message', 
-            data: { event: 'error', data: { message: err.message || 'Failed to subscribe to task updates.' } } 
+            type: 'error', 
+            data: { message: err.message || 'Failed to subscribe to task updates.' } 
           })
           await stop(false)
         }
