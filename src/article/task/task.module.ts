@@ -15,7 +15,7 @@ import {TaskGeminiProcessor} from './task-gemini.processor'
     {
       provide: GoogleGenAIClient,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): GoogleGenAI =>
+      useFactory: (configService: ConfigService): GoogleGenAI => {
         // new GoogleGenAI({
         //   apiKey: configService.get('GEMINI_API_KEY'),
         //   httpOptions: {
@@ -25,12 +25,15 @@ import {TaskGeminiProcessor} from './task-gemini.processor'
         //     }
         //   }
         // })
-        new GoogleGenAI({
+        const baseUrl = configService.get('AI_GATEWAY_GEMINI')
+        console.log(`BASE_URL = ${baseUrl}`)
+        return new GoogleGenAI({
           apiKey: configService.get('AI_GATEWAY_TOKEN'),
           httpOptions: {
-            baseUrl: configService.get('AI_GATEWAY_GEMINI')
+            baseUrl
           }
         })
+      }
     },
     {
       provide: BunRedisClient,
