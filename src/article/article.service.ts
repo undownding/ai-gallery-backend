@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common'
-import { type FindOptionsWhere, LessThan } from 'typeorm'
-import { BaseCrudService } from '../common/base-crud-service'
-import { Article } from './article.entity'
-import { ArticleListRespDto } from './dto/article-list-resp.dto'
-import { ArticlesQueryDto, DEFAULT_ARTICLE_PAGE_SIZE } from './dto/articles-query.dto'
+import {ForbiddenException, Injectable, NotFoundException} from '@nestjs/common'
+import {type FindOptionsWhere, LessThan} from 'typeorm'
+import {BaseCrudService} from '../common/base-crud-service'
+import {Article} from './article.entity'
+import {ArticleListRespDto} from './dto/article-list-resp.dto'
+import {ArticlesQueryDto, DEFAULT_ARTICLE_PAGE_SIZE} from './dto/articles-query.dto'
 
 @Injectable()
 export class ArticleService extends BaseCrudService<Article> {
@@ -34,5 +34,20 @@ export class ArticleService extends BaseCrudService<Article> {
         hasMore: nextAfterId !== null
       }
     }
+  }
+
+  async updateArticle(
+    articleId: string,
+    update: Partial<Article>,
+    operatorUserId: string
+  ): Promise<Article> {
+    const article = await this.getById(articleId)
+    if (!article) {
+      throw new NotFoundException('Article not found.')
+    }
+    if (article.userId !== operatorUserId) {
+      throw new ForbiddenException('You are not the author of this article.')
+    }
+    return this.repository.save(this.repository.merge(article, update))
   }
 }
