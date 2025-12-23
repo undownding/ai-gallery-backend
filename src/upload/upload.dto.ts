@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsAlpha, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
 
 export class UploadQueryDTO {
@@ -12,4 +12,13 @@ export class UploadQueryDTO {
   @MinLength(2)
   @MaxLength(4)
   ext?: string
+}
+
+export class UploadImageBodyDTO {
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    description: '要上传的图片文件'
+  })
+  file: unknown
 }

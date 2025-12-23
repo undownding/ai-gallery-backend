@@ -140,12 +140,14 @@ export class UploadService extends BaseCrudService<Upload> {
       return null
     }
 
+    let resolvedMimeType = mimeType || 'unknown mime'
+
     try {
       const dataUrlMatch = base64Image.match(/^data:(?<type>[^;]+);base64,/)
       const normalizedBase64 = dataUrlMatch
         ? base64Image.slice(dataUrlMatch[0].length)
         : base64Image
-      const resolvedMimeType = dataUrlMatch?.groups?.type || mimeType || 'application/octet-stream'
+      resolvedMimeType = dataUrlMatch?.groups?.type || mimeType || 'application/octet-stream'
       if (
         resolvedMimeType !== 'application/octet-stream' &&
         !resolvedMimeType.startsWith('image/')
@@ -153,8 +155,27 @@ export class UploadService extends BaseCrudService<Upload> {
         throw new Error(`Unsupported MIME type: ${resolvedMimeType}`)
       }
       const binary = Buffer.from(normalizedBase64.replace(/\s+/g, ''), 'base64')
+      return this.uploadImageBuffer(binary, owner, { sourceMimeType: resolvedMimeType })
+    } catch (error) {
+      Logger.error(
+        `Failed to upload base64 image (${resolvedMimeType}): ${error.message}`,
+        'UploadService'
+      )
+      return null
+    }
+  }
 
-      const webpBuffer = await sharp(binary).webp({ quality: 90 }).toBuffer()
+  async uploadImageBuffer(
+    buffer: Buffer,
+    owner?: UploadOwner,
+    options?: { sourceMimeType?: string }
+  ): Promise<Upload | null> {
+    if (!buffer || buffer.length === 0) {
+      return null
+    }
+
+    try {
+      const webpBuffer = await sharp(buffer).webp({ quality: 90 }).toBuffer()
 
       const { key } = buildObjectKey(owner, 'webp')
 
@@ -176,7 +197,7 @@ export class UploadService extends BaseCrudService<Upload> {
       return upload
     } catch (error) {
       Logger.error(
-        `Failed to upload base64 image (${mimeType || 'unknown mime'}): ${error.message}`,
+        `Failed to upload image buffer (${options?.sourceMimeType || 'unknown mime'}): ${error.message}`,
         'UploadService'
       )
       return null

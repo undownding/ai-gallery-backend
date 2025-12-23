@@ -8,16 +8,31 @@ import {
   NotFoundException,
   Param,
   Post,
-  Query
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags
+} from '@nestjs/swagger'
 import { UploadService } from './upload.service'
 import { Upload } from './upload.entity'
-import { UploadQueryDTO } from './upload.dto'
+import { UploadImageBodyDTO, UploadQueryDTO } from './upload.dto'
 import heredoc from 'tsheredoc'
 import { NeedLogin } from '../user/need-login.decorator'
 import { Me } from '../user/me.decorator'
 import { User } from '../user/user.entity'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { memoryStorage } from 'multer'
+import type { Multer } from 'multer'
+
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 
 @Controller('upload')
 @ApiTags('上传')
@@ -70,6 +85,48 @@ export class UploadController {
 
     if (!upload) {
       throw new NotFoundException('Upload not found')
+    }
+
+    return upload
+  }
+  @Put('/image')
+  @ApiOperation({
+    summary: '上传图片并转换为 WebP',
+    description: '接收图片文件，转换为 WebP 后写入 S3 并返回 upload 对象'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadImageBodyDTO })
+  @ApiOkResponse({
+    type: () => Upload
+  })
+  @ApiBearerAuth()
+  @NeedLogin()
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_IMAGE_SIZE_BYTES }
+    })
+  )
+  async uploadImage(@UploadedFile() file: Multer.File, @Me() me: User): Promise<Upload> {
+    if (!file) {
+      throw new BadRequestException('Image file is required')
+    }
+
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only image files are supported')
+    }
+
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('Image file is empty')
+    }
+
+    const upload = await this.uploadService.uploadImageBuffer(file.buffer, {
+      id: me.id,
+      login: me.login
+    })
+
+    if (!upload) {
+      throw new BadRequestException('Failed to process image')
     }
 
     return upload
