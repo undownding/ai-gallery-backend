@@ -1,9 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common'
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger'
-import { ApiSummary } from '../common/nestjs-ext'
-import { ArticleService } from './article.service'
-import { ArticlesQueryDto } from './dto/articles-query.dto'
-import { ArticleListRespDto } from './dto/article-list-resp.dto'
+import {Controller, Get, Query} from '@nestjs/common'
+import {ApiOkResponse, ApiTags} from '@nestjs/swagger'
+import {ApiSummary} from '../common/nestjs-ext'
+import {ArticleService} from './article.service'
+import {ArticlesQueryDto} from './dto/articles-query.dto'
+import {ArticleListRespDto} from './dto/article-list-resp.dto'
+import {Article} from "./article.entity"
 
 @Controller('articles')
 @ApiTags('Article')
@@ -15,5 +16,12 @@ export class ArticleController {
   @ApiOkResponse({ type: () => ArticleListRespDto })
   async listArticles(@Query() query: ArticlesQueryDto): Promise<ArticleListRespDto> {
     return this.articleService.listArticles(query)
+  }
+
+  @Get(':id')
+  @ApiSummary('获取单篇公开文章详情')
+  @ApiOkResponse({ type: () => Article })
+  async getArticleById(@Query('id') id: string): Promise<Article | null> {
+    return this.articleService.getById(id)
   }
 }
