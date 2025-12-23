@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common'
-import { BunRedisClient, GoogleGenAIClient } from './task.constants'
+import { BullModule } from '@nestjs/bullmq'
+import { BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient } from './task.constants'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { GoogleGenAI } from '@google/genai'
 import { UploadModule } from '../../upload/upload.module'
 import { RedisClient } from 'bun'
 import { TaskController } from './task.controller'
 import { TaskService } from './task.service'
+import { TaskGeminiProcessor } from './task-gemini.processor'
 
 @Module({
-  imports: [ConfigModule, UploadModule],
+  imports: [ConfigModule, UploadModule, BullModule.registerQueue({ name: GEMINI_TASK_QUEUE })],
   providers: [
     {
       provide: GoogleGenAIClient,
@@ -30,7 +32,8 @@ import { TaskService } from './task.service'
       useFactory: (configService: ConfigService) =>
         new RedisClient(configService.get('REDIS_URL', 'redis://localhost:6379/4'))
     },
-    TaskService
+    TaskService,
+    TaskGeminiProcessor
   ],
   controllers: [TaskController]
 })

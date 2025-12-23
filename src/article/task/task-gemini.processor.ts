@@ -5,14 +5,14 @@ import { Inject } from '@nestjs/common'
 import { GoogleGenAI } from '@google/genai'
 import { UploadService } from '../../upload/upload.service'
 import { Upload } from '../../upload/upload.entity'
-import { BunRedisClient } from './task.constants'
+import { BunRedisClient, GEMINI_TASK_QUEUE, GoogleGenAIClient } from './task.constants'
 import { RedisClient } from 'bun'
 import { type Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
 import { isEqual } from 'lodash'
 
-@Processor('gemini-task-queue')
+@Processor(GEMINI_TASK_QUEUE)
 export class TaskGeminiProcessor extends WorkerHost {
-  @Inject(GoogleGenAI)
+  @Inject(GoogleGenAIClient)
   private readonly ai: GoogleGenAI
 
   @Inject(BunRedisClient)
@@ -23,8 +23,27 @@ export class TaskGeminiProcessor extends WorkerHost {
 
   @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
 
-  async process(job: Job<GeminiTask>, token?: string): Promise<void> {
+  async process(job: Job<GeminiTask>): Promise<void> {
     const { aspectRatio, imageSize, referenceUploadIds, prompt, userId } = job.data
+    const cacheKey = `gemini-task:${job.id}`
+    const textChannel = `${cacheKey}:text`
+    const imageChannel = `${cacheKey}:image`
+    const doneChannel = `${cacheKey}:done`
+
+    let currentState: CachedTask = (await this.cacheManager.get<CachedTask>(cacheKey)) ?? {
+      isDone: false,
+      text: null,
+      upload: null
+    }
+    await this.cacheManager.set(cacheKey, currentState)
+
+    const persistState = async (next: CachedTask) => {
+      if (!isEqual(currentState, next)) {
+        await this.cacheManager.set(cacheKey, next)
+        currentState = next
+      }
+    }
+
     const referenceContents: InlineContent[] = (
       await Promise.all(
         (referenceUploadIds || [])
@@ -52,29 +71,25 @@ export class TaskGeminiProcessor extends WorkerHost {
       }
     })
 
-    let aggregatedText = ''
-    let lastUpload: Upload | null = null
+    let aggregatedText = currentState.text ?? ''
+    let lastUpload: Upload | null = currentState.upload ?? null
 
     for await (const chunk of stream) {
       const candidates = chunk.candidates ?? []
 
       for (const candidate of candidates) {
-        const cachedTask: CachedTask = (await this.cacheManager.get(
-          `gemini-task-cache:${job.id}`
-        )) || {
-          isDone: false,
-          text: null,
-          upload: null
-        }
-
         const parts = candidate.content?.parts ?? []
         for (const part of parts) {
           const text = (part as { text?: string }).text
           if (text) {
             aggregatedText = aggregatedText ? `${aggregatedText}${text}` : text
-            // sendEvent(controller, 'text', { text })
-            await this.redis.set(`gemini-task:${job.id}:text`, aggregatedText)
-            await this.redis.publish(`gemini-task:${job.id}:text`, aggregatedText)
+            await this.redis.set(textChannel, aggregatedText)
+            await this.redis.publish(textChannel, aggregatedText)
+            await persistState({
+              isDone: false,
+              text: aggregatedText || null,
+              upload: lastUpload
+            })
             continue
           }
 
@@ -86,20 +101,14 @@ export class TaskGeminiProcessor extends WorkerHost {
               inlineData.mimeType,
               { id: userId }
             )
-            const lastUploadJson = JSON.stringify(lastUpload)
-            await this.redis.set(`gemini-task:${job.id}:image`, JSON.stringify(lastUploadJson))
-            await this.redis.publish(`gemini-task:${job.id}:image`, JSON.stringify(lastUploadJson))
-            // sendEvent(controller, 'image', upload)
-          }
-
-          const nowTask = {
-            isDone: false,
-            text,
-            upload: lastUpload
-          }
-
-          if (!isEqual(cachedTask, nowTask)) {
-            await this.cacheManager.set(`gemini-task:${job.id}`, nowTask)
+            const uploadPayload = JSON.stringify(lastUpload)
+            await this.redis.set(imageChannel, uploadPayload)
+            await this.redis.publish(imageChannel, uploadPayload)
+            await persistState({
+              isDone: false,
+              text: aggregatedText || null,
+              upload: lastUpload
+            })
           }
         }
       }
@@ -107,9 +116,10 @@ export class TaskGeminiProcessor extends WorkerHost {
 
     const finalTask: CachedTask = {
       isDone: true,
-      text: aggregatedText,
+      text: aggregatedText || null,
       upload: lastUpload
     }
-    await this.cacheManager.set(`gemini-task:${job.id}`, finalTask)
+    await persistState(finalTask)
+    await this.redis.publish(doneChannel, 'done')
   }
 }
