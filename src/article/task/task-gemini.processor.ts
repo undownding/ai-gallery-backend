@@ -84,7 +84,7 @@ export class TaskGeminiProcessor extends WorkerHost {
             lastUpload = await this.uploadService.uploadBase64Image(
               inlineData.data,
               inlineData.mimeType,
-              userId
+              { id: userId }
             )
             const lastUploadJson = JSON.stringify(lastUpload)
             await this.redis.set(`gemini-task:${job.id}:image`, JSON.stringify(lastUploadJson))

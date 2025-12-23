@@ -42,7 +42,7 @@ export class UploadController {
   @ApiBearerAuth()
   @NeedLogin()
   async getPresignedUrl(@Query() query: UploadQueryDTO, @Me() me: User): Promise<Upload> {
-    return this.uploadService.presign(query.ext ?? 'jpg', me.id)
+    return this.uploadService.presign(query.ext ?? 'jpg', { id: me.id, login: me.login })
   }
 
   @Post(':uploadId/complete')

@@ -1,14 +1,15 @@
-import {Body, Controller, Get, Param, Patch, Query} from '@nestjs/common'
-import {ApiOkResponse, ApiTags} from '@nestjs/swagger'
-import {ApiSummary} from '../common/nestjs-ext'
-import {ArticleService} from './article.service'
-import {ArticlesQueryDto} from './dto/articles-query.dto'
-import {ArticleListRespDto} from './dto/article-list-resp.dto'
-import {Article} from './article.entity'
-import {ArticleUpdateDto} from './dto/article-update.dto'
-import {NeedLogin} from "../user/need-login.decorator"
-import {Me} from "../user/me.decorator"
-import {User} from "../user/user.entity"
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common'
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger'
+import { ApiSummary } from '../common/nestjs-ext'
+import { ArticleService } from './article.service'
+import { ArticlesQueryDto } from './dto/articles-query.dto'
+import { ArticleListRespDto } from './dto/article-list-resp.dto'
+import { Article } from './article.entity'
+import { ArticleUpdateDto } from './dto/article-update.dto'
+import { ArticleCreateDto } from './dto/article-create.dto'
+import { NeedLogin } from '../user/need-login.decorator'
+import { Me } from '../user/me.decorator'
+import { User } from '../user/user.entity'
 
 @Controller('articles')
 @ApiTags('Article')
@@ -39,5 +40,13 @@ export class ArticleController {
     @Me() me: User
   ): Promise<Article> {
     return this.articleService.updateArticle(id, body, me.id)
+  }
+
+  @Post()
+  @NeedLogin()
+  @ApiSummary('创建文章（仅限登录用户）')
+  @ApiOkResponse({ type: () => Article })
+  async createArticle(@Body() body: ArticleCreateDto, @Me() me: User): Promise<Article> {
+    return this.articleService.createArticle(body, me)
   }
 }

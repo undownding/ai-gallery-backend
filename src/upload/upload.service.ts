@@ -1,11 +1,33 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import sharp from 'sharp'
+import dayjs from 'dayjs'
 import { Upload } from './upload.entity'
-import { v7 as uuid } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import { isEmpty, isNull } from 'lodash'
 import { URL } from 'url'
 import { S3_BUCKET, S3_CLIENT } from '../s3/s3.constants'
 import { BaseCrudService } from '../common/base-crud-service'
+
+export type UploadOwner = {
+  id?: string | null
+  login?: string | null
+}
+
+const BASE_UPLOAD_PREFIX = 'public/user-uploads'
+const DEFAULT_OWNER_SEGMENT = 'anonymous'
+
+function buildObjectKey(owner: UploadOwner | null | undefined, ext: string) {
+  const normalizedExt = (ext || 'bin').replace(/^\.+/, '').trim().toLowerCase() || 'bin'
+  const id = uuidv7()
+  const prefix = dayjs().format('YYYY-MM')
+  const ownerId = owner?.id?.trim() || DEFAULT_OWNER_SEGMENT
+  const ownerLogin = owner?.login?.trim() || DEFAULT_OWNER_SEGMENT
+  const ownerSegment = `${ownerLogin}_${ownerId}`
+  return {
+    id,
+    key: `${BASE_UPLOAD_PREFIX}/${prefix}/${ownerSegment}/${id}.${normalizedExt}`
+  }
+}
 
 @Injectable()
 export class UploadService extends BaseCrudService<Upload> {
@@ -17,16 +39,18 @@ export class UploadService extends BaseCrudService<Upload> {
     super(Upload)
   }
 
-  async presign(ext: string, userId?: string): Promise<Upload> {
-    const id = uuid()
-    const key = `public/user-uploads/${userId || 'anonymous'}/${id}.${ext}`
+  async presign(ext: string, owner?: UploadOwner): Promise<Upload> {
+    const { key } = buildObjectKey(owner, ext)
 
     const url = this.s3Client.presign(key, {
       method: 'PUT',
       expiresIn: 3600
     })
 
-    const upload = await this.create({ key, user: { id: userId } })
+    const upload = await this.create({
+      key,
+      ...(owner?.id ? { user: { id: owner.id } } : {})
+    })
 
     return {
       ...upload,
@@ -110,7 +134,7 @@ export class UploadService extends BaseCrudService<Upload> {
   async uploadBase64Image(
     base64Image: string,
     mimeType?: string,
-    userId?: string
+    owner?: UploadOwner
   ): Promise<Upload | null> {
     if (!base64Image) {
       return null
@@ -132,14 +156,17 @@ export class UploadService extends BaseCrudService<Upload> {
 
       const webpBuffer = await sharp(binary).webp({ quality: 90 }).toBuffer()
 
-      const key = `public/user-uploads/${userId || 'anonymous'}/${uuid()}.webp`
+      const { key } = buildObjectKey(owner, 'webp')
 
       await this.s3Client.write(key, webpBuffer, {
         type: 'image/webp',
         acl: 'public-read'
       })
 
-      const upload = await this.create({ key, user: { id: userId } })
+      const upload = await this.create({
+        key,
+        ...(owner?.id ? { user: { id: owner.id } } : {})
+      })
       await this.setETagFromS3(upload)
 
       if (!upload.url) {
@@ -150,6 +177,64 @@ export class UploadService extends BaseCrudService<Upload> {
     } catch (error) {
       Logger.error(
         `Failed to upload base64 image (${mimeType || 'unknown mime'}): ${error.message}`,
+        'UploadService'
+      )
+      return null
+    }
+  }
+
+  async generateSquareThumbnailFromUpload(
+    uploadId: string,
+    owner?: UploadOwner,
+    size = 500
+  ): Promise<Upload | null> {
+    const sourceUpload = await this.getById(uploadId)
+    if (!sourceUpload?.key) {
+      Logger.error(
+        `Cannot generate thumbnail: upload ${uploadId} does not exist or is missing key`,
+        'UploadService'
+      )
+      return null
+    }
+
+    try {
+      const s3File = this.s3Client.file(sourceUpload.key)
+      const arrayBuffer = await s3File.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      const sharpImage = sharp(buffer)
+      const { width, height } = await sharpImage.metadata()
+      // Resize so the shortest edge equals the requested size while preserving aspect ratio
+      const resizeOptions: sharp.ResizeOptions =
+        typeof width === 'number' && typeof height === 'number'
+          ? width <= height
+            ? { width: size }
+            : { height: size }
+          : { width: size }
+
+      const webpBuffer = await sharpImage.resize(resizeOptions).webp({ quality: 90 }).toBuffer()
+
+      const { key } = buildObjectKey(owner, 'webp')
+
+      await this.s3Client.write(key, webpBuffer, {
+        type: 'image/webp',
+        acl: 'public-read'
+      })
+
+      const thumbnail = await this.create({
+        key,
+        ...(owner?.id ? { user: { id: owner.id } } : {})
+      })
+      await this.setETagFromS3(thumbnail)
+
+      if (!thumbnail.url) {
+        thumbnail.url = `${this.CDN_ADDR}/${key}`
+      }
+
+      return thumbnail
+    } catch (error) {
+      Logger.error(
+        `Failed to generate thumbnail from upload ${uploadId}: ${error.message}`,
         'UploadService'
       )
       return null

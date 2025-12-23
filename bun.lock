@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bun-nestjs-template",
@@ -25,6 +26,7 @@
         "class-validator": "^0.14.2",
         "cookie-parser": "^1.4.7",
         "dataloader": "^2.2.3",
+        "dayjs": "^1.11.13",
         "keyv": "^5.5.3",
         "lodash": "^4.17.21",
         "nanoid": "^5.1.6",
