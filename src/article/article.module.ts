@@ -6,10 +6,12 @@ import { ArticleService } from './article.service'
 import { UserModule } from '../user/user.module'
 import { UploadModule } from '../upload/upload.module'
 import { TaskModule } from './task/task.module'
+import { S3Module } from '../s3/s3.module'
+import { CleanupOrphanUploadsService } from './cleanup-orphan-uploads.service'
 
 @Module({
-  imports: [UserModule, UploadModule, TaskModule, TypeOrmModule.forFeature([Article])],
+  imports: [UserModule, UploadModule, TaskModule, S3Module, TypeOrmModule.forFeature([Article])],
   controllers: [ArticleController],
-  providers: [ArticleService]
+  providers: [ArticleService, CleanupOrphanUploadsService]
 })
 export class ArticleModule {}

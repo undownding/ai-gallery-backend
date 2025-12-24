@@ -12,6 +12,7 @@ import { BullModule } from '@nestjs/bullmq'
 import { parseRedisUrl } from './common/redis-url-parser'
 import { createAppCacheModule } from './common/cache/app-cache-module'
 import { UserModule } from './user/user.module'
+import { ScheduleModule } from '@nestjs/schedule'
 import process from 'process'
 
 @Module({
@@ -26,6 +27,7 @@ import process from 'process'
       })
     }),
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     createAppCacheModule(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
