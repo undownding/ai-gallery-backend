@@ -1,14 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import {
-  ArrayMinSize,
-  IsArray,
-  IsDefined,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength
-} from 'class-validator'
+import {ApiProperty, ApiPropertyOptional} from '@nestjs/swagger'
+import {ArrayMinSize, IsArray, IsDefined, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength} from 'class-validator'
 
 export class ArticleCreateDto {
   @ApiProperty({ description: 'Article body content (markdown or rich text)' })
@@ -30,7 +21,7 @@ export class ArticleCreateDto {
   @IsDefined()
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   mediaId: string[]
 
   @ApiProperty({
@@ -40,6 +31,6 @@ export class ArticleCreateDto {
   })
   @IsDefined()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   sourcesId: string[]
 }

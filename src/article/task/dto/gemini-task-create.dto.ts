@@ -1,7 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator'
-import { ASPECT_RATIO_VALUES, IMAGE_SIZE_VALUES } from '../task.type'
-import type { AspectRatio, ImageSize } from '../task.type'
+import {ApiProperty, ApiPropertyOptional} from '@nestjs/swagger'
+import {IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID} from 'class-validator'
+import type {AspectRatio, ImageSize} from '../task.type'
+import {ASPECT_RATIO_VALUES, IMAGE_SIZE_VALUES} from '../task.type'
 
 export class GeminiTaskCreateDto {
   @ApiProperty({ description: 'Prompt that drives Gemini to generate text and/or imagery' })
@@ -29,7 +29,7 @@ export class GeminiTaskCreateDto {
   })
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   referenceUploadIds?: string[]
 }
 
