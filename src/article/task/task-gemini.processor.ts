@@ -87,7 +87,7 @@ export class TaskGeminiProcessor extends WorkerHost {
       const contents: InlineContent[] = [{ text: prompt }, ...referenceContents]
       
       const stream = await this.ai.models.generateContentStream({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
         contents,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
